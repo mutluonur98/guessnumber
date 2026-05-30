@@ -2086,6 +2086,7 @@ input[type="text"]:focus, input[type="password"]:focus {
     align-items: center;
     gap: 15px;
     transition: all 0.3s ease;
+    flex-wrap: wrap;
 }
 
 .friend-card:hover {
@@ -2100,7 +2101,8 @@ input[type="text"]:focus, input[type="password"]:focus {
 }
 
 .friend-info {
-    flex: 1;
+    flex: 2;
+    min-width: 120px;
 }
 
 .friend-name {
@@ -2108,13 +2110,16 @@ input[type="text"]:focus, input[type="password"]:focus {
     font-size: 16px;
     margin-bottom: 5px;
     color: white;
+    text-align: center; /* İsmi ortalar */
 }
 
 .friend-stats {
     display: flex;
-    gap: 15px;
+    gap: 12px;
     font-size: 12px;
-    color: rgba(255,255,255,0.7);
+    color: rgba(255, 255, 255, 0.7);
+    justify-content: center; /* İstatistikleri de ortalar */
+    flex-wrap: wrap;
 }
 
 .friend-stats span {
@@ -2126,6 +2131,7 @@ input[type="text"]:focus, input[type="password"]:focus {
 .friend-actions {
     display: flex;
     gap: 8px;
+    margin-left: auto;
 }
 
 .friend-challenge-btn,
@@ -2409,14 +2415,32 @@ input[type="text"]:focus, input[type="password"]:focus {
     .avatar-grid {
         grid-template-columns: repeat(4, 1fr);
     }
-
     .friend-card {
+        gap: 10px;
+        padding: 12px;
+    }
+    .friend-avatar {
+        font-size: 36px;
+        min-width: 45px;
+    }
+    .friend-stats {
+        gap: 6px;
+        font-size: 9px;
         flex-wrap: wrap;
     }
 
+    .friend-stats span {
+        white-space: nowrap;
+    }
+
     .friend-actions {
-        width: 100%;
-        justify-content: flex-end;
+        gap: 5px;
+    }
+    .friend-challenge-btn,
+    .friend-remove-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
     }
 
     .add-friend-section {
