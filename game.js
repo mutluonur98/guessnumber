@@ -996,19 +996,22 @@ window.displayGuessesSideBySide = async function(guesses) {
     const opponentGuesses = guesses.filter(g => g.player_id !== window.currentPlayer?.id);
 
     // SADECE SAYI VE RENKLİ KUTULAR - Gereksiz bilgiler yok!
+    // game.js - displayGuessesSideBySide fonksiyonu (yaklaşık 700-730. satırlar)
+
+// Bu kısmı:
+
     if (myGuesses.length === 0) {
         myGuessesList.innerHTML = '<div class="guess-history-empty">📭 Henüz tahmin yapmadın</div>';
     } else {
         myGuessesList.innerHTML = myGuesses.map((guess) => {
             return `
-                <div class="guess-item">
-                    
-                    <div class="guess-feedback-row">
-                        ${formatGuessFeedback(guess, digits)}
-                    </div>
+            <div class="guess-item">
+                <div class="guess-feedback-row">
+                    ${formatGuessFeedback(guess, digits)}
                 </div>
-            `;
-        }).reverse().join('');
+            </div>
+        `;
+        })
     }
 
     if (opponentGuesses.length === 0) {
@@ -1016,14 +1019,43 @@ window.displayGuessesSideBySide = async function(guesses) {
     } else {
         opponentGuessesList.innerHTML = opponentGuesses.map((guess) => {
             return `
-                <div class="guess-item">
-                 
-                    <div class="guess-feedback-row">
-                        ${formatGuessFeedback(guess, digits)}
-                    </div>
+            <div class="guess-item">
+                <div class="guess-feedback-row">
+                    ${formatGuessFeedback(guess, digits)}
                 </div>
-            `;
-        }).reverse().join('');
+            </div>
+        `;
+        })
+    }
+
+// ŞU ŞEKİLE GETİRİN (.join('') EKLEYİN):
+
+    if (myGuesses.length === 0) {
+        myGuessesList.innerHTML = '<div class="guess-history-empty">📭 Henüz tahmin yapmadın</div>';
+    } else {
+        myGuessesList.innerHTML = myGuesses.map((guess) => {
+            return `
+            <div class="guess-item">
+                <div class="guess-feedback-row">
+                    ${formatGuessFeedback(guess, digits)}
+                </div>
+            </div>
+        `;
+        }).join('');  // <--- .join('') EKLENDİ
+    }
+
+    if (opponentGuesses.length === 0) {
+        opponentGuessesList.innerHTML = '<div class="guess-history-empty">🤖 Rakip henüz tahmin yapmadı</div>';
+    } else {
+        opponentGuessesList.innerHTML = opponentGuesses.map((guess) => {
+            return `
+            <div class="guess-item">
+                <div class="guess-feedback-row">
+                    ${formatGuessFeedback(guess, digits)}
+                </div>
+            </div>
+        `;
+        }).join('');  // <--- .join('') EKLENDİ
     }
 }
 
