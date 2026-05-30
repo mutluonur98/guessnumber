@@ -2535,7 +2535,7 @@ input[type="text"]:focus, input[type="password"]:focus {
     .game-header .btn-leave {
         order: 0;
         align-self: center;
-        padding: 5px 10px;
+        padding: 5px 8px;
         font-size: 10px;
         margin: 0;
         position: static !important;
