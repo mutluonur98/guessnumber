@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tahmin Düellosu - Düello Odası</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+  <div class="game-header">
+    <button onclick="leaveGame()" class="btn-leave">← Çıkış Yap</button>
+    <h1>🔢 TAHMİN DÜELLOSU</h1>
+    <!-- gameStatus kaldırıldı -->
+  </div>
+
+  <div class="room-code-card">
+    <div class="room-code-label">🏠 DÜELLO KODU</div>
+    <div class="room-code-value" id="roomCode">—</div>
+  </div>
+
+  <div class="secret-card" onclick="toggleSecret()">
+    <div class="secret-label">🔒 GİZLİ SAYIN <span style="font-size: 11px;">(tıkla göster/gizle)</span></div>
+    <div class="secret-value secret-hidden" id="secretValue">•••••</div>
+  </div>
+
+  <div class="game-players">
+    <div class="player-box" id="player1Box">
+      <div class="player-avatar">👤</div>
+      <div class="player-name" id="player1Name">Oyuncu 1</div>
+      <div class="player-status" id="player1Status">Bekleniyor...</div>
+      <div class="player-stats" id="player1Stats">
+        <span>🏆 <span id="player1Wins">0</span></span>
+        <span>🤝 <span id="player1Draws">0</span></span>
+        <span>📉 <span id="player1Losses">0</span></span>
+      </div>
+      <div class="player-emoji-buttons" id="player1Emojis">
+        <button onclick="sendEmojiMessage('😊', '😊', 'gülümsedi')" class="player-emoji-btn" title="Gülen Yüz">😊</button>
+        <button onclick="sendEmojiMessage('😠', '😠', 'sinirlendi')" class="player-emoji-btn" title="Sinirli Yüz">😠</button>
+        <button onclick="sendEmojiMessage('👏', '👏', 'alkışladı')" class="player-emoji-btn" title="Alkış">👏</button>
+        <button onclick="sendEmojiMessage('🤔', '🤔', 'düşünüyor')" class="player-emoji-btn" title="Düşünen">🤔</button>
+        <button onclick="sendEmojiMessage('😎', '😎', 'havalı takıldı')" class="player-emoji-btn" title="Havalı">😎</button>
+        <button onclick="sendEmojiMessage('🥳', '🥳', 'kutlama yaptı')" class="player-emoji-btn" title="Kutlama">🥳</button>
+      </div>
+      <div class="player-message-overlay" id="player1Message"></div>
+    </div>
+    <div class="vs">⚔️ VS ⚔️</div>
+    <div class="player-box" id="player2Box">
+      <div class="player-avatar">🤖</div>
+      <div class="player-name" id="player2Name">Oyuncu 2</div>
+      <div class="player-status" id="player2Status">Bekleniyor...</div>
+      <div class="player-stats" id="player2Stats">
+        <span>🏆 <span id="player2Wins">0</span></span>
+        <span>🤝 <span id="player2Draws">0</span></span>
+        <span>📉 <span id="player2Losses">0</span></span>
+      </div>
+      <div class="player-emoji-buttons" id="player2Emojis">
+        <button onclick="sendEmojiMessage('😊', '😊', 'gülümsedi')" class="player-emoji-btn" title="Gülen Yüz">😊</button>
+        <button onclick="sendEmojiMessage('😠', '😠', 'sinirlendi')" class="player-emoji-btn" title="Sinirli Yüz">😠</button>
+        <button onclick="sendEmojiMessage('👏', '👏', 'alkışladı')" class="player-emoji-btn" title="Alkış">👏</button>
+        <button onclick="sendEmojiMessage('🤔', '🤔', 'düşünüyor')" class="player-emoji-btn" title="Düşünen">🤔</button>
+        <button onclick="sendEmojiMessage('😎', '😎', 'havalı takıldı')" class="player-emoji-btn" title="Havalı">😎</button>
+        <button onclick="sendEmojiMessage('🥳', '🥳', 'kutlama yaptı')" class="player-emoji-btn" title="Kutlama">🥳</button>
+      </div>
+      <div class="player-message-overlay" id="player2Message"></div>
+    </div>
+  </div>
+
+  <div class="turn-indicator" id="turnIndicator">⏳ Sıra bekleniyor...</div>
+
+  <div class="guess-section">
+    <div class="guess-input-area">
+      <input type="text" id="guessInput" placeholder="Sayı girin" disabled>
+      <button id="guessButton" disabled>TAHMİN ET</button>
+    </div>
+    <div id="errorMessage" class="error-message"></div>
+  </div>
+
+  <div class="history-section">
+    <h2>📜 Tahmin Geçmişi</h2>
+    <div class="legend">
+      <span><span class="legend-green"></span> Doğru yerde</span>
+      <span><span class="legend-yellow"></span> Yanlış yerde</span>
+      <span><span class="legend-gray"></span> Yok</span>
+    </div>
+    <div id="guessesHistory" class="guesses-history">
+      <div class="history-empty">Henüz tahmin yapılmadı</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+<script src="game.js"></script>
+<script src="friends.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tahmin Düellosu - Bekleme Odası</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+  <div class="game-header">
+    <button onclick="logout()" class="btn-leave">← Çıkış Yap</button>
+    <h1>🔢 TAHMİN DÜELLOSU</h1>
+    <div class="right-buttons" id="rightButtons"></div>
+  </div>
+
+  <div class="player-info">
+    <div class="player-avatar-section" onclick="openAvatarModal()">
+      <div class="player-avatar-display" id="playerAvatar">👨</div>
+      <div class="player-avatar-edit">✏️</div>
+    </div>
+    <div class="player-details">
+      <span>👋 Hoş geldin, <strong id="playerName"></strong></span>
+      <span>🆔 ID: <span id="playerId"></span></span>
+    </div>
+  </div>
+
+  <div class="stats-card">
+    <div class="stats-header">
+      <h3>📊 İSTATİSTİKLERİM</h3>
+      <div class="stats-total">Toplam Düello: <span id="totalGames">0</span></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-item win">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-info">
+          <div class="stat-value" id="wins">0</div>
+          <div class="stat-label">Galibiyet</div>
+        </div>
+      </div>
+      <div class="stat-item draw">
+        <div class="stat-icon">🤝</div>
+        <div class="stat-info">
+          <div class="stat-value" id="draws">0</div>
+          <div class="stat-label">Beraberlik</div>
+        </div>
+      </div>
+      <div class="stat-item loss">
+        <div class="stat-icon">😢</div>
+        <div class="stat-info">
+          <div class="stat-value" id="losses">0</div>
+          <div class="stat-label">Mağlubiyet</div>
+        </div>
+      </div>
+      <div class="stat-item elo">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-info">
+          <div class="stat-value" id="eloRating">1000</div>
+          <div class="stat-label" id="eloLevelLabel">Çaylak</div>
+        </div>
+      </div>
+    </div>
+    <div class="stats-winrate">
+      <div class="winrate-label">Kazanma Oranı</div>
+      <div class="winrate-bar">
+        <div class="winrate-fill" id="winrateFill" style="width: 0%"></div>
+      </div>
+      <div class="winrate-value" id="winrateValue">0%</div>
+    </div>
+  </div>
+
+  <div class="lobby-actions">
+    <div class="card">
+      <h2>🎮 Yeni Düello Kur</h2>
+      <p style="font-size: 14px; color: #aaa;">6-10 basamak arası sayı ile düello yapabilirsiniz</p>
+      <button onclick="openCreateGameModal()" class="btn-success">🏠 Düello Kur</button>
+    </div>
+
+    <div class="card">
+      <h2>🔑 Oda Koduna Katıl</h2>
+      <input type="text" id="joinCodeInput" placeholder="6 haneli oda kodu" maxlength="6">
+      <button onclick="prepareJoinWithCode()" class="btn-primary">🎯 Katıl</button>
+    </div>
+
+    <div class="card">
+      <h2>📋 Mevcut Düellolar</h2>
+      <div id="roomsList" class="rooms-list">
+        <p>Yükleniyor...</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="leaderboard-card">
+    <div class="leaderboard-header">
+      <h3>🏆 LİDERLİK SIRALAMASI (ELO)</h3>
+      <div class="leaderboard-tabs">
+        <button class="leaderboard-tab active" onclick="loadLeaderboard('all')">⭐ En Yüksek ELO</button>
+      </div>
+    </div>
+    <div class="leaderboard-table" id="leaderboardTable">
+      <div class="loading-spinner">🏆 Sıralama yükleniyor...</div>
+    </div>
+    <div class="my-rank" id="myRank"></div>
+  </div>
+</div>
+
+<div id="createGameModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>🔢 Kaç Basamaklı Sayı ile Düello Etmek İstersiniz?</h3>
+      <span class="close" onclick="closeCreateGameModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <div class="digit-buttons">
+        <button onclick="selectDigitForCreate(6)" class="digit-btn">6 Basamak</button>
+        <button onclick="selectDigitForCreate(7)" class="digit-btn">7 Basamak</button>
+        <button onclick="selectDigitForCreate(8)" class="digit-btn">8 Basamak</button>
+        <button onclick="selectDigitForCreate(9)" class="digit-btn">9 Basamak</button>
+        <button onclick="selectDigitForCreate(10)" class="digit-btn">10 Basamak</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="avatarModal" class="modal" style="display: none;">
+  <div class="modal-content avatar-modal-content">
+    <div class="modal-header">
+      <h3>🎨 Avatar Seç</h3>
+      <span class="close" onclick="closeAvatarModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 20px;">Kendini en iyi ifade eden avatarları seç!</p>
+      <div class="avatar-grid" id="avatarGrid"></div>
+    </div>
+  </div>
+</div>
+
+<div id="createSecretModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>🔢 Gizli Sayınızı Girin</h3>
+      <span class="close" onclick="closeCreateSecretModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 15px; color: #ccc;">Rakibin tahmin edeceği sayıyı girin</p>
+      <input type="text" id="createSecretNumber" placeholder="Gizli sayı" maxlength="10" inputmode="numeric" pattern="\d*" style="text-align: center; font-size: 24px; letter-spacing: 4px;">
+      <button onclick="confirmCreateGame()" class="btn-success" style="margin-top: 20px;">✅ Düelloyu Kur</button>
+      <button onclick="closeCreateSecretModal()" class="btn-secondary">İptal</button>
+    </div>
+  </div>
+</div>
+
+<div id="joinSecretModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>🔢 Gizli Sayınızı Girin</h3>
+      <span class="close" onclick="closeJoinSecretModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 15px; color: #ccc;">Rakibin tahmin edeceği sayıyı girin</p>
+      <input type="text" id="joinSecretNumber" placeholder="Gizli sayı" maxlength="10" inputmode="numeric" pattern="\d*" style="text-align: center; font-size: 24px; letter-spacing: 4px;">
+      <button onclick="confirmJoinWithSecret()" class="btn-success" style="margin-top: 20px;">✅ Düelloya Katıl</button>
+      <button onclick="closeJoinSecretModal()" class="btn-secondary">İptal</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+<script src="lobby.js"></script>
+<script src="friends.js"></script>
+<script src="chat.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
+</body>
+</html>

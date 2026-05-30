@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Tahmin Düellosu - Giriş</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="login-container">
+  <div class="login-wrapper">
+    <div class="login-brand">
+      <div class="brand-icon">🔢</div>
+      <h1 class="brand-title">TAHMİN DÜELLOSU</h1>
+      <p class="brand-tagline">Rakibini tahminle alt et!</p>
+      <div class="brand-features">
+        <div class="feature">
+          <span class="feature-icon">🎯</span>
+          <span>6-10 Basamak</span>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">⚔️</span>
+          <span>1vs1 Düello</span>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">🎮</span>
+          <span>Gerçek Zamanlı</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-form">
+      <div class="form-tabs">
+        <button class="tab-btn active" onclick="switchTab('login')">Giriş Yap</button>
+        <button class="tab-btn" onclick="switchTab('register')">Kayıt Ol</button>
+      </div>
+
+      <div id="loginForm" class="form-panel active">
+        <h2 class="form-title">Hoş Geldiniz</h2>
+        <p class="form-subtitle">Hesabınıza giriş yaparak düelloya başlayın</p>
+
+        <div class="input-group">
+          <div class="input-icon">👤</div>
+          <input type="text" id="loginUsername" placeholder="Kullanıcı adı" maxlength="20" autocomplete="off">
+        </div>
+
+        <div class="input-group">
+          <div class="input-icon">🔒</div>
+          <input type="password" id="loginPassword" placeholder="Şifre" maxlength="20">
+        </div>
+
+        <button onclick="login()" class="btn-login">Giriş Yap</button>
+      </div>
+
+      <div id="registerForm" class="form-panel">
+        <h2 class="form-title">Yeni Hesap</h2>
+        <p class="form-subtitle">Hemen kaydol ve düelloya başla!</p>
+
+        <div class="input-group">
+          <div class="input-icon">👤</div>
+          <input type="text" id="registerUsername" placeholder="Kullanıcı adı" maxlength="20" autocomplete="off">
+        </div>
+
+        <div class="input-group">
+          <div class="input-icon">🔒</div>
+          <input type="password" id="registerPassword" placeholder="Şifre (min. 4 karakter)" maxlength="20">
+        </div>
+
+        <div class="input-group">
+          <div class="input-icon">✅</div>
+          <input type="password" id="registerConfirmPassword" placeholder="Şifre tekrar" maxlength="20">
+        </div>
+
+        <button onclick="register()" class="btn-register">Kayıt Ol</button>
+      </div>
+
+      <div class="form-footer">
+        <p>🔢 Tahmin Düellosu - Online Strateji Oyunu</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
+</body>
+</html>
