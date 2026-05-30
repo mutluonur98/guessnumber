@@ -34,6 +34,8 @@ function updateInputMaxLength(digits) {
     if (guessInput) {
         guessInput.maxLength = digits;
         guessInput.placeholder = `${digits} haneli sayı girin`;
+        guessInput.autocomplete = 'off';  // Öneri engelleme
+        guessInput.autofill = 'off';      // Otomatik doldurma engelleme
     }
 }
 
