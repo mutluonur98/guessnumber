@@ -86,47 +86,6 @@ body {
     }
 }
 
-/* Mobil düzen */
-@media (max-width: 767px) {
-    .game-header {
-        display: flex;
-        flex-direction: row !important;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: nowrap;
-        padding: 10px 12px;
-    }
-
-    .game-header h1 {
-        order: 0;
-        font-size: 0.9rem;
-        margin: 0;
-        flex: 1;
-        text-align: center;
-        white-space: nowrap;
-    }
-
-    .game-header .btn-leave {
-        order: 0;
-        align-self: center;
-        padding: 6px 12px;
-        font-size: 11px;
-        margin: 0;
-    }
-
-    .game-header .right-buttons {
-        order: 0;
-        width: auto;
-        justify-content: flex-end;
-        margin-left: 0;
-    }
-
-    .game-header .btn-add-friend-game {
-        padding: 6px 12px;
-        font-size: 10px;
-        margin: 0;
-    }
-}
 
 /* Mobil VS - Kılıçlar yan yana (yatay) */
 
@@ -2633,8 +2592,6 @@ input[type="text"]:focus, input[type="password"]:focus {
         flex-direction: row !important;
         align-items: center !important;
         justify-content: center !important;
-        transform: none !important;
-        rotate: 0deg !important;
         font-size: 14px !important;
         gap: 4px !important;
         padding: 0 6px !important;
@@ -2642,16 +2599,6 @@ input[type="text"]:focus, input[type="password"]:focus {
         width: auto !important;
         min-width: 50px !important;
         white-space: nowrap !important;
-    }
-
-    .vs::before,
-    .vs::after {
-        display: inline-block !important;
-        font-size: 12px !important;
-    }
-
-    .vs span, .vs br {
-        display: inline !important;
     }
 
     .guess-input-area {
@@ -2672,116 +2619,30 @@ input[type="text"]:focus, input[type="password"]:focus {
         font-size: 14px;
     }
 
-    /* TAHMİN GEÇMİŞİ */
-    .guesses-table {
+    /* TAHMİN KARTLARI */
+    .guess-number-text {
+        font-size: clamp(8px, 3vw, 15px);
+        letter-spacing: clamp(0px, 0.3vw, 1.5px);
+        padding: 6px 10px;
+        white-space: nowrap;
         overflow-x: auto;
-        overflow-y: visible;
-        width: 100%;
-        background: #f8f9fa;
-        border-radius: 16px;
+        max-width: 100%;
     }
 
-    .table-header {
+    .feedback-digit {
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
+    }
+
+    .guess-feedback-row {
         display: flex;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        border-radius: 12px 12px 0 0;
-        min-width: 320px;
-    }
-
-    .header-cell {
-        flex: 1;
-        text-align: center;
-        font-weight: bold;
-        padding: 8px 4px;
-        font-size: 10px;
-        color: white;
-    }
-
-    .vs-cell {
-        width: 45px;
-        text-align: center;
-        color: #ffeb3b;
-        font-weight: bold;
-        background: rgba(0,0,0,0.2);
-        flex-shrink: 0;
-        font-size: 10px;
-    }
-
-    .table-body {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        padding: 8px;
-        max-height: 350px;
-        overflow-y: auto;
-    }
-
-    .table-row {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        padding: 6px;
-        background: white;
-        border-radius: 10px;
-        min-width: 320px;
-    }
-
-    .guess-cell {
-        flex: 1;
-        display: flex;
-        align-items: center;
+        flex-wrap: nowrap !important;  /* KESİNLİKLE SARMA YOK */
+        gap: 4px;
         justify-content: center;
-        gap: 3px;
-        padding: 3px;
-    }
-
-    .guess-cell.empty {
-        background: #f0f0f0;
-        color: #bbb;
-        text-align: center;
-        padding: 5px;
-        border-radius: 8px;
-        font-size: 9px;
-    }
-
-    .vs-cell-small {
-        width: 40px;
-        text-align: center;
-        color: #ef4444;
-        font-weight: bold;
-        font-size: 9px;
-        flex-shrink: 0;
-    }
-
-    .guess-number {
-        font-weight: bold;
-        font-size: 8px;
-        min-width: 22px;
-        color: #667eea;
-        text-align: center;
-        background: #f0f0ff;
-        padding: 2px 3px;
-        border-radius: 10px;
-        flex-shrink: 0;
-    }
-
-    .guess-cells {
-        display: flex;
-        gap: 2px;
-        justify-content: center;
-        flex-wrap: nowrap;
-    }
-
-    .mini-cell {
-        width: 22px;
-        height: 22px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 9px;
-        flex-shrink: 0;
+        margin-top: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
     }
 
     .big-emoji {
@@ -2837,151 +2698,6 @@ input[type="text"]:focus, input[type="password"]:focus {
 }
 
 /* ÇOK KÜÇÜK EKRANLAR (550px ve altı) - KARTLAR TAMAMEN EŞİT */
-@media (max-width: 550px) {
-    /* 4 KART - YATAY KAYDIRMA DEVAM EDİYOR */
-    .stats-grid {
-        gap: 14px;
-    }
-
-    .stat-item {
-        min-width: 75px;
-        padding: 6px 4px;
-        gap: 5px;
-    }
-
-    .stat-icon {
-        font-size: 16px;
-    }
-
-    .stat-value {
-        font-size: 13px;
-    }
-
-    .stat-label {
-        font-size: 8px;
-    }
-
-    .player-box {
-        width: 140px !important;
-        min-width: 140px !important;
-        max-width: 140px !important;
-        padding: 8px 4px;
-    }
-
-    .player-box .player-avatar {
-        font-size: 38px !important;
-        width: 50px;
-        height: 50px;
-    }
-
-    .player-name {
-        font-size: 10px;
-        min-height: 16px;
-    }
-
-    .player-status {
-        font-size: 8px;
-        padding: 2px 5px;
-        min-height: 20px;
-    }
-
-    .player-stats {
-        gap: 4px;
-        min-height: 28px;
-    }
-
-    .player-stats span {
-        font-size: 8px;
-        padding: 1px 3px;
-    }
-
-    .player-emoji-buttons {
-        gap: 5px;
-        min-height: 34px;
-    }
-
-    .player-emoji-btn {
-        width: 28px;
-        height: 28px;
-        font-size: 14px;
-    }
-
-    .vs {
-        font-size: 12px !important;
-        width: 38px !important;
-        min-width: 38px !important;
-        gap: 2px !important;
-        padding: 0 3px !important;
-    }
-
-    .mini-cell {
-        width: 24px;
-        height: 24px;
-        font-size: 10px;
-    }
-
-    .guess-input-area input {
-        font-size: 18px;
-        letter-spacing: 3px;
-        padding: 10px;
-    }
-
-    .digit-btn {
-        padding: 8px 12px;
-        font-size: 12px;
-        min-width: 65px;
-    }
-
-    .big-emoji {
-        font-size: 80px;
-    }
-
-    .login-brand {
-        display: none;
-    }
-
-    .login-form {
-        padding: 30px 25px;
-    }
-
-    .avatar-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-    }
-
-    .avatar-emoji {
-        font-size: 36px;
-    }
-
-    .private-invitation-notification {
-        left: 10px;
-        right: 10px;
-        top: 10px;
-        max-width: none;
-    }
-
-    .private-invitation-notification .notification-content.private-invite {
-        padding: 15px;
-    }
-
-    .invite-details {
-        text-align: center;
-    }
-
-    .button-group {
-        flex-direction: row;
-    }
-
-    .private-invitation-notification button {
-        padding: 8px 12px;
-        font-size: 13px;
-    }
-
-    .game-header .btn-add-friend-game {
-        margin-left: auto;
-    }
-}
-
 /* LANDSCAPE MOD (YATAY EKRAN) */
 @media (max-width: 900px) and (orientation: landscape) {
     .game-players {
@@ -3007,12 +2723,118 @@ input[type="text"]:focus, input[type="password"]:focus {
     .big-emoji {
         font-size: 100px;
     }
-
-    .guesses-table {
-        max-height: 200px;
+}
+/* MOBİL (768px ve altı) */
+@media (max-width: 768px) {
+    .guess-number-text {
+        font-size: clamp(8px, 3vw, 15px);
+        letter-spacing: clamp(0px, 0.3vw, 1.5px);
+        padding: 6px 10px;
+        white-space: nowrap;
+        overflow-x: auto;
+        max-width: 100%;
     }
 
+    .feedback-digit {
+        width: 35px;
+        height: 35px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+        font-family: 'Courier New', monospace;
+        flex-shrink: 0;  /* KUTULAR KÜÇÜLMEZ */
+    }
 
+    .guess-feedback-row {
+        display: flex;
+        flex-wrap: nowrap !important;  /* KESİNLİKLE SARMA YOK */
+        gap: 4px;
+        justify-content: center;
+        margin-top: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+}
+/* 550px ve altı - KESİN TEK SATIR, KAYDIRMA YOK */
+@media (max-width: 550px) {
+    /* TAHMİN SAYISI */
+    .guess-number-text {
+        font-size: 7px !important;
+        letter-spacing: 0.2px !important;
+        padding: 4px 6px !important;
+        white-space: nowrap !important;
+        overflow: visible !important;
+        max-width: 100% !important;
+    }
+
+    /* GERİ BİLDİRİM KUTULARI - TEK SATIR, KAYDIRMA YOK */
+    .guess-feedback-row {
+        flex-wrap: nowrap !important;
+        overflow: visible !important;
+        gap: 3px;
+        justify-content: center;
+    }
+
+    .feedback-digit {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 9px !important;
+        border-radius: 5px !important;
+        flex-shrink: 0 !important;
+    }
+}
+
+/* 480px ve altı - DAHA KÜÇÜK */
+@media (max-width: 480px) {
+    .guess-number-text {
+        font-size: 6px !important;
+        letter-spacing: 0px !important;
+        padding: 3px 4px !important;
+    }
+
+    .feedback-digit {
+        width: 21px !important;
+        height: 21px !important;
+        font-size: 8px !important;
+        border-radius: 4px !important;
+    }
+
+    .guess-feedback-row {
+        gap: 2px;
+    }
+}
+
+/* 400px ve altı - EN KÜÇÜK */
+@media (max-width: 400px) {
+    .guess-number-text {
+        font-size: 5.5px !important;
+        padding: 2px 3px !important;
+    }
+
+    .feedback-digit {
+        width: 19px !important;
+        height: 19px !important;
+        font-size: 7px !important;
+        border-radius: 4px !important;
+    }
+}
+
+/* 360px ve altı - ÇOK KÜÇÜK EKRANLAR */
+@media (max-width: 360px) {
+    .feedback-digit {
+        width: 17px !important;
+        height: 17px !important;
+        font-size: 6px !important;
+        border-radius: 3px !important;
+    }
+
+    .guess-number-text {
+        font-size: 5px !important;
+        padding: 2px 2px !important;
+    }
 }
 
 /* ============ ELO STAT ITEM STILLERİ ============ */
@@ -3049,3 +2871,191 @@ input[type="text"]:focus, input[type="password"]:focus {
 .stat-item.elo .stat-label.platinum { color: #e5e4e2; }
 .stat-item.elo .stat-label.diamond { color: #b9f2ff; }
 .stat-item.elo .stat-label.master { color: #ff6b6b; }
+
+
+/* ============ YENİ TAHMİN KARTLARI (MOBİL DOSTU) ============ */
+.my-guesses-card,
+.opponent-guesses-card {
+    background: rgba(255,255,255,0.95);
+    border-radius: 24px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.my-guesses-card {
+    border-left: 5px solid #4caf50;
+}
+
+.opponent-guesses-card {
+    border-left: 5px solid #f44336;
+}
+
+.guesses-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-bottom: 2px solid #dee2e6;
+}
+
+.player-guess-avatar {
+    font-size: 32px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.guesses-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #333;
+    font-weight: 600;
+}
+
+.my-guesses-card .guesses-header h3 {
+    color: #2e7d32;
+}
+
+.opponent-guesses-card .guesses-header h3 {
+    color: #c62828;
+}
+
+.guesses-list {
+    padding: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.guess-item {
+    background: #f8f9fa;
+    border-radius: 16px;
+    padding: 12px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+}
+
+.guess-item:hover {
+    transform: translateX(5px);
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.guess-number-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 12px;
+    width: 100%;
+}
+/* Webkit tarayıcılar için scrollbar stilleri (opsiyonel) */
+.guess-number-text::-webkit-scrollbar {
+    height: 2px;
+}
+
+.guess-number-text::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+}
+
+.guess-number-text::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.5);
+    border-radius: 10px;
+}
+
+.guess-number-text {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 30px;
+    display: inline-block;
+    text-align: center;
+    white-space: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    /* Taşma durumunda yatay kaydırma çubuğu göster (opsiyonel) */
+    overflow: auto;
+    scrollbar-width: thin;
+    /* Yazı boyutu çok küçük ekranlarda daha da küçülsün */
+    font-size: clamp(8px, 3.5vw, 18px);
+    letter-spacing: clamp(0px, 0.5vw, 2px);
+}
+
+.guess-result-badge {
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+.result-correct {
+    background: #4caf50;
+    color: white;
+}
+
+.result-wrong {
+    background: #f44336;
+    color: white;
+}
+.guess-feedback-row {
+    display: flex;
+    flex-wrap: nowrap !important;  /* KESİNLİKLE SARMA YOK */
+    gap: 4px;
+    justify-content: center;
+    margin-top: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+
+.feedback-digit {
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    flex-shrink: 0;  /* KUTULAR KÜÇÜLMEZ */
+}
+
+.feedback-digit.correct-position {
+    background: linear-gradient(135deg, #4caf50, #2e7d32);
+    color: white;
+}
+
+.feedback-digit.wrong-position {
+    background: linear-gradient(135deg, #ffc107, #ff9800);
+    color: #333;
+}
+
+.feedback-digit.not-exist {
+    background: #e9ecef;
+    color: #adb5bd;
+}
+
+.guess-time {
+    font-size: 10px;
+    color: #6c757d;
+    text-align: right;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid #dee2e6;
+}
+
+.guess-history-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #adb5bd;
+    font-style: italic;
+}
+
