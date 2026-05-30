@@ -329,7 +329,6 @@ function updatePlayerStatus() {
     }
 }
 
-// ELO GÜNCELLEME FONKSİYONU
 async function updateEloRatings(winnerId, loserId, isDraw = false) {
     const supabase = initSupabase();
 
@@ -456,7 +455,6 @@ function showEloNotification(eloResult, isDraw, isWinner) {
     setTimeout(() => notification.remove(), 4000);
 }
 
-// Oyun sayfasına arkadaşlık isteği butonu ekle
 function addFriendButtonToGame() {
     if (document.getElementById('addFriendInGameBtn')) return;
 
@@ -843,24 +841,106 @@ window.loadGuesses = async function(gameId) {
             return;
         }
 
-        await displayGuessesSideBySide(guesses || []);
+        await window.displayGuessesSideBySide(guesses || []);
     } catch (error) {
         console.error('Load guesses error:', error);
     }
 }
 
+function formatGuessFeedback(guess, digits) {
+    let html = '';
+    const guessDigits = guess.guess.split('');
+
+    let greenPositions = guess.green_positions;
+    let yellowPositions = guess.yellow_positions;
+
+    if (greenPositions && typeof greenPositions === 'object' && !Array.isArray(greenPositions)) {
+        greenPositions = Object.values(greenPositions).filter(v => v !== null && v !== false);
+    }
+    if (yellowPositions && typeof yellowPositions === 'object' && !Array.isArray(yellowPositions)) {
+        yellowPositions = Object.values(yellowPositions).filter(v => v !== null && v !== false);
+    }
+
+    greenPositions = greenPositions || [];
+    yellowPositions = yellowPositions || [];
+
+    for (let i = 0; i < digits; i++) {
+        let status = 'not-exist';
+        if (greenPositions.includes(i)) {
+            status = 'correct-position';
+        } else if (yellowPositions.includes(i)) {
+            status = 'wrong-position';
+        }
+        html += `<div class="feedback-digit ${status}">${guessDigits[i] || '?'}</div>`;
+    }
+    return html;
+}
+
+function createNewGuessCards() {
+    const historySection = document.querySelector('.history-section');
+    if (!historySection) return;
+
+    const oldTable = document.getElementById('guessesHistory');
+    if (oldTable) {
+        oldTable.style.display = 'none';
+    }
+
+    if (document.getElementById('myGuessesList')) return;
+
+    const newHTML = `
+        <div class="my-guesses-card">
+            <div class="guesses-header">
+                <div class="player-guess-avatar">👤</div>
+                <h3>SENİN TAHMİNLERİN</h3>
+            </div>
+            <div class="guesses-list" id="myGuessesList">
+                <div class="guess-history-empty">📭 Henüz tahmin yapmadın</div>
+            </div>
+        </div>
+        <div class="opponent-guesses-card">
+            <div class="guesses-header">
+                <div class="player-guess-avatar">🤖</div>
+                <h3>RAKİBİN TAHMİNLERİ</h3>
+            </div>
+            <div class="guesses-list" id="opponentGuessesList">
+                <div class="guess-history-empty">🤖 Rakip henüz tahmin yapmadı</div>
+            </div>
+        </div>
+    `;
+
+    const legend = historySection.querySelector('.legend');
+    if (legend) {
+        legend.insertAdjacentHTML('afterend', newHTML);
+    } else {
+        historySection.insertAdjacentHTML('beforeend', newHTML);
+    }
+}
+
 window.displayGuessesSideBySide = async function(guesses) {
-    const historyDiv = document.getElementById('guessesHistory');
-    if (!historyDiv) return;
+    let myGuessesList = document.getElementById('myGuessesList');
+    let opponentGuessesList = document.getElementById('opponentGuessesList');
+
+    const oldHistoryDiv = document.getElementById('guessesHistory');
+    if (oldHistoryDiv) {
+        oldHistoryDiv.style.display = 'none';
+    }
+
+    if (!myGuessesList || !opponentGuessesList) {
+        createNewGuessCards();
+        setTimeout(() => window.displayGuessesSideBySide(guesses), 100);
+        return;
+    }
 
     if (!guesses || guesses.length === 0) {
-        historyDiv.innerHTML = '<div class="history-empty">Henüz tahmin yapılmadı</div>';
+        myGuessesList.innerHTML = '<div class="guess-history-empty">📭 Henüz tahmin yapmadın</div>';
+        opponentGuessesList.innerHTML = '<div class="guess-history-empty">🤖 Rakip henüz tahmin yapmadı</div>';
         return;
     }
 
     const supabase = initSupabase();
 
     let opponentName = 'RAKİP';
+    let opponentAvatar = '🤖';
     if (window.currentGame && window.currentPlayer) {
         const opponentId = window.currentGame.player1_id === window.currentPlayer.id
             ? window.currentGame.player2_id
@@ -870,11 +950,12 @@ window.displayGuessesSideBySide = async function(guesses) {
             try {
                 const { data: opponent } = await supabase
                     .from('users')
-                    .select('username')
+                    .select('username, avatar')
                     .eq('id', opponentId)
                     .maybeSingle();
-                if (opponent && opponent.username) {
-                    opponentName = opponent.username;
+                if (opponent) {
+                    opponentName = opponent.username || 'RAKİP';
+                    opponentAvatar = opponent.avatar || '🤖';
                 }
             } catch (err) {
                 console.error('Rakip ismi alınamadı:', err);
@@ -882,72 +963,70 @@ window.displayGuessesSideBySide = async function(guesses) {
         }
     }
 
-    const myGuesses = [];
-    const opponentGuesses = [];
+    let myAvatar = '👤';
+    if (window.currentPlayer) {
+        try {
+            const { data: myData } = await supabase
+                .from('users')
+                .select('avatar')
+                .eq('id', window.currentPlayer.id)
+                .maybeSingle();
+            if (myData && myData.avatar) {
+                myAvatar = myData.avatar;
+            }
+        } catch (err) {
+            console.error('Avatar alınamadı:', err);
+        }
+    }
+
+    const myGuessHeader = document.querySelector('#myGuessesList')?.closest('.my-guesses-card')?.querySelector('.guesses-header h3');
+    const opponentGuessHeader = document.querySelector('#opponentGuessesList')?.closest('.opponent-guesses-card')?.querySelector('.guesses-header h3');
+
+    if (myGuessHeader) myGuessHeader.innerHTML = `👤 ${window.currentPlayer?.username || 'SENİN'} TAHMİNLERİN`;
+    if (opponentGuessHeader) opponentGuessHeader.innerHTML = `👥 ${opponentName.toUpperCase()} TAHMİNLERİ`;
+
+    const myAvatarEl = document.querySelector('#myGuessesList')?.closest('.my-guesses-card')?.querySelector('.player-guess-avatar');
+    const opponentAvatarEl = document.querySelector('#opponentGuessesList')?.closest('.opponent-guesses-card')?.querySelector('.player-guess-avatar');
+    if (myAvatarEl) myAvatarEl.textContent = myAvatar;
+    if (opponentAvatarEl) opponentAvatarEl.textContent = opponentAvatar;
+
     const digits = window.currentGame?.digit_count || 6;
 
-    guesses.forEach(guess => {
-        if (guess.player_id === window.currentPlayer?.id) {
-            myGuesses.push(guess);
-        } else {
-            opponentGuesses.push(guess);
-        }
-    });
+    const myGuesses = guesses.filter(g => g.player_id === window.currentPlayer?.id);
+    const opponentGuesses = guesses.filter(g => g.player_id !== window.currentPlayer?.id);
 
-    let tableHtml = `
-        <div class="guesses-table">
-            <div class="table-header">
-                <div class="header-cell my-header">👤 ${window.currentPlayer?.username || 'SEN'}</div>
-                <div class="header-cell vs-cell">⚔️ VS ⚔️</div>
-                <div class="header-cell opponent-header">👥 ${opponentName}</div>
-            </div>
-            <div class="table-body">
-    `;
-
-    const maxRows = Math.max(myGuesses.length, opponentGuesses.length);
-
-    for (let i = 0; i < maxRows; i++) {
-        tableHtml += `<div class="table-row">`;
-        tableHtml += `<div class="guess-cell">${myGuesses[i] ? formatGuessCell(myGuesses[i], digits) : '<div class="guess-cell empty">—</div>'}</div>`;
-        tableHtml += `<div class="vs-cell-small">VS</div>`;
-        tableHtml += `<div class="guess-cell">${opponentGuesses[i] ? formatGuessCell(opponentGuesses[i], digits) : '<div class="guess-cell empty">—</div>'}</div>`;
-        tableHtml += `</div>`;
+    // SADECE SAYI VE RENKLİ KUTULAR - Gereksiz bilgiler yok!
+    if (myGuesses.length === 0) {
+        myGuessesList.innerHTML = '<div class="guess-history-empty">📭 Henüz tahmin yapmadın</div>';
+    } else {
+        myGuessesList.innerHTML = myGuesses.map((guess) => {
+            return `
+                <div class="guess-item">
+                    
+                    <div class="guess-feedback-row">
+                        ${formatGuessFeedback(guess, digits)}
+                    </div>
+                </div>
+            `;
+        }).reverse().join('');
     }
 
-    tableHtml += `</div></div>`;
-    historyDiv.innerHTML = tableHtml;
-    historyDiv.scrollTop = historyDiv.scrollHeight;
-}
-
-function formatGuessCell(guess, digits) {
-    let cellsHtml = '';
-    for (let j = 0; j < digits; j++) {
-        let cellClass = 'gray';
-        let cellText = guess.guess[j] || '?';
-
-        let greenPositions = guess.green_positions;
-        let yellowPositions = guess.yellow_positions;
-
-        if (typeof greenPositions === 'object' && !Array.isArray(greenPositions)) {
-            greenPositions = Object.values(greenPositions);
-        }
-        if (typeof yellowPositions === 'object' && !Array.isArray(yellowPositions)) {
-            yellowPositions = Object.values(yellowPositions);
-        }
-
-        if (greenPositions && Array.isArray(greenPositions) && greenPositions.includes(j)) {
-            cellClass = 'green';
-        } else if (yellowPositions && Array.isArray(yellowPositions) && yellowPositions.includes(j)) {
-            cellClass = 'yellow';
-        }
-
-        cellsHtml += `<div class="mini-cell ${cellClass}">${cellText}</div>`;
+    if (opponentGuesses.length === 0) {
+        opponentGuessesList.innerHTML = '<div class="guess-history-empty">🤖 Rakip henüz tahmin yapmadı</div>';
+    } else {
+        opponentGuessesList.innerHTML = opponentGuesses.map((guess) => {
+            return `
+                <div class="guess-item">
+                 
+                    <div class="guess-feedback-row">
+                        ${formatGuessFeedback(guess, digits)}
+                    </div>
+                </div>
+            `;
+        }).reverse().join('');
     }
-
-    return `<div class="guess-number">#${guess.guess_number}</div><div class="guess-cells">${cellsHtml}</div>`;
 }
 
-// Oyun sonu Elo güncelleme fonksiyonu
 async function finishGameWithElo(winnerId, loserId, isDraw = false) {
     console.log(`Oyun sonu: Kazanan: ${winnerId}, Kaybeden: ${loserId}, Beraberlik: ${isDraw}`);
 
@@ -1025,10 +1104,8 @@ window.makeGuess = async function() {
         await loadGuesses(window.currentGame.id);
 
         if (evaluation.green.length === digits) {
-            // SAYI BULUNDU!
             if (window.currentGame.status === 'extra_turn') {
                 await checkExtraTurnResult(window.currentGame.id, window.currentPlayer.id, true);
-                // Beraberlik durumunda Elo güncellemesi
                 const opponentId = window.currentGame.player1_id === window.currentPlayer.id
                     ? window.currentGame.player2_id
                     : window.currentGame.player1_id;
@@ -1050,8 +1127,6 @@ window.makeGuess = async function() {
                         })
                         .eq('id', window.currentGame.id);
                     window.showError('🎉 TEBRİKLER! Sayıyı buldunuz! 🎉');
-
-                    // ELO GÜNCELLEMESİ - KAZANAN
                     const opponentId = window.currentGame.player2_id;
                     await finishGameWithElo(window.currentPlayer.id, opponentId, false);
                 }
@@ -1065,8 +1140,6 @@ window.makeGuess = async function() {
                     })
                     .eq('id', window.currentGame.id);
                 window.showError('🎉 TEBRİKLER! Sayıyı buldunuz! 🎉');
-
-                // ELO GÜNCELLEMESİ - KAZANAN
                 const opponentId = window.currentGame.player1_id;
                 await finishGameWithElo(window.currentPlayer.id, opponentId, false);
             }
@@ -1083,7 +1156,6 @@ window.makeGuess = async function() {
                     .eq('id', window.currentGame.id);
             } else {
                 await checkExtraTurnResult(window.currentGame.id, window.currentPlayer.id, false);
-                // Ekstra hakkı kullanamadı - kaybetti
                 const opponentId = window.currentGame.player1_id;
                 await finishGameWithElo(opponentId, window.currentPlayer.id, false);
             }

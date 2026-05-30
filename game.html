@@ -15,7 +15,6 @@
   <div class="game-header">
     <button onclick="leaveGame()" class="btn-leave">← Çıkış Yap</button>
     <h1>🔢 TAHMİN DÜELLOSU</h1>
-    <!-- gameStatus kaldırıldı -->
   </div>
 
   <div class="room-code-card">
@@ -81,14 +80,33 @@
   </div>
 
   <div class="history-section">
-    <h2>📜 Tahmin Geçmişi</h2>
+    <h2>📜 TAHMİN GEÇMİŞİ</h2>
     <div class="legend">
       <span><span class="legend-green"></span> Doğru yerde</span>
       <span><span class="legend-yellow"></span> Yanlış yerde</span>
       <span><span class="legend-gray"></span> Yok</span>
     </div>
-    <div id="guessesHistory" class="guesses-history">
-      <div class="history-empty">Henüz tahmin yapılmadı</div>
+
+    <!-- SENİN TAHMİNLERİN -->
+    <div class="my-guesses-card">
+      <div class="guesses-header">
+        <div class="player-guess-avatar" id="myGuessAvatar">👤</div>
+        <h3 id="myGuessName">SENİN TAHMİNLERİN</h3>
+      </div>
+      <div class="guesses-list" id="myGuessesList">
+        <div class="guess-history-empty">📭 Henüz tahmin yapmadın</div>
+      </div>
+    </div>
+
+    <!-- RAKİBİN TAHMİNLERİ -->
+    <div class="opponent-guesses-card">
+      <div class="guesses-header">
+        <div class="player-guess-avatar" id="opponentGuessAvatar">🤖</div>
+        <h3 id="opponentGuessName">RAKİBİN TAHMİNLERİ</h3>
+      </div>
+      <div class="guesses-list" id="opponentGuessesList">
+        <div class="guess-history-empty">🤖 Rakip henüz tahmin yapmadı</div>
+      </div>
     </div>
   </div>
 </div>
@@ -97,10 +115,5 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
 <script src="game.js"></script>
 <script src="friends.js"></script>
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
-  }
-</script>
 </body>
 </html>
