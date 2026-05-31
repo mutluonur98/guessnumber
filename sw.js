@@ -9,7 +9,8 @@ const urlsToCache = [
     '/lobby.js',
     '/game.js',
     '/friends.js',
-    '/chat.js'
+    '/chat.js',
+    '/manifest.json'  // <-- BUNU EKLEYİN!
 ];
 
 self.addEventListener('install', event => {

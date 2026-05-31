@@ -596,34 +596,52 @@ window.initGame = async function() {
 
     console.log('gameId:', gameId, 'playerId:', urlPlayerId);
 
+    // URL parametrelerini kontrol et
     if (!gameId || !urlPlayerId) {
         console.log('gameId veya playerId eksik, lobbyye yönlendiriliyor...');
-        window.location.href = 'lobby.html';
+        showGameNotification('❌ Geçersiz oyun bağlantısı!', 'error');
+        setTimeout(() => {
+            window.location.href = 'lobby.html';
+        }, 1500);
+        return;
+    }
+
+    // UUID formatını kontrol et
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(gameId)) {
+        console.log('Geçersiz oyun ID formatı:', gameId);
+        showGameNotification('❌ Geçersiz oyun ID formatı!', 'error');
+        setTimeout(() => {
+            window.location.href = 'lobby.html';
+        }, 1500);
         return;
     }
 
     const supabase = initSupabase();
 
     try {
-        const { data: player, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', urlPlayerId)
-            .maybeSingle();
-
-        if (error || !player) {
-            console.error('Get player error:', error);
-            window.location.href = 'lobby.html';
+        // Önce oturum kontrolü
+        const userStr = sessionStorage.getItem('currentUser');
+        if (!userStr) {
+            console.log('Oturum bulunamadı, giriş sayfasına yönlendiriliyor...');
+            window.location.href = 'index.html';
             return;
         }
 
-        window.currentPlayer = { id: player.id, username: player.username };
-        console.log('currentPlayer:', window.currentPlayer);
+        const user = JSON.parse(userStr);
 
-        sessionStorage.setItem('currentUser', JSON.stringify({
-            id: player.id,
-            username: player.username
-        }));
+        // URL'deki playerId ile oturumdaki playerId uyuşuyor mu?
+        if (user.id !== urlPlayerId) {
+            console.log('Oyuncu eşleşmiyor!');
+            showGameNotification('❌ Bu oyun size ait değil!', 'error');
+            setTimeout(() => {
+                window.location.href = 'lobby.html';
+            }, 1500);
+            return;
+        }
+
+        window.currentPlayer = { id: user.id, username: user.username };
+        console.log('currentPlayer:', window.currentPlayer);
 
         await loadGame(gameId);
         setupGameRealtime(gameId);
@@ -667,8 +685,12 @@ window.initGame = async function() {
 
     } catch (error) {
         console.error('Init game error:', error);
+        showGameNotification('❌ Oyun yüklenirken hata oluştu!', 'error');
+        setTimeout(() => {
+            window.location.href = 'lobby.html';
+        }, 2000);
     }
-}
+};
 
 async function checkGameUpdates(gameId) {
     const supabase = initSupabase();
@@ -965,10 +987,14 @@ async function updatePlayerNames() {
     }
 }
 
-window.loadGame = async function(gameId) {
+window.loadGame = async function(gameId, retryCount = 0) {
     const supabase = initSupabase();
+    const MAX_RETRIES = 5;
+    const RETRY_DELAY = 800;
 
     try {
+        console.log(`Oyun yükleniyor (deneme ${retryCount + 1}/${MAX_RETRIES}):`, gameId);
+
         const { data: game, error } = await supabase
             .from('games')
             .select('*')
@@ -977,17 +1003,42 @@ window.loadGame = async function(gameId) {
 
         if (error) {
             console.error('Load game error:', error);
+
+            if (retryCount < MAX_RETRIES) {
+                console.log(`Hata oluştu, ${RETRY_DELAY}ms sonra yeniden deneniyor...`);
+                setTimeout(() => {
+                    window.loadGame(gameId, retryCount + 1);
+                }, RETRY_DELAY);
+                return;
+            }
+
+            showGameNotification('❌ Oyun yüklenirken hata oluştu!', 'error');
+            setTimeout(() => {
+                window.location.href = 'lobby.html';
+            }, 2000);
             return;
         }
 
         if (!game) {
-            alert('Oyun bulunamadı!');
-            window.location.href = 'lobby.html';
+            console.log(`Oyun ID ${gameId} bulunamadı, yeniden deneniyor...`);
+
+            if (retryCount < MAX_RETRIES) {
+                setTimeout(() => {
+                    window.loadGame(gameId, retryCount + 1);
+                }, RETRY_DELAY);
+                return;
+            }
+
+            showGameNotification('❌ Oyun bulunamadı! Oda silinmiş veya geçersiz olabilir.', 'error');
+            setTimeout(() => {
+                window.location.href = 'lobby.html';
+            }, 2000);
             return;
         }
 
+        // Oyun başarıyla yüklendi
         window.currentGame = game;
-        console.log('currentGame yüklendi:', window.currentGame);
+        console.log('✅ currentGame yüklendi:', window.currentGame);
 
         const roomCodeSpan = document.getElementById('roomCode');
         if (roomCodeSpan && game.room_code) {
@@ -1005,8 +1056,20 @@ window.loadGame = async function(gameId) {
 
     } catch (error) {
         console.error('Load game error:', error);
+
+        if (retryCount < MAX_RETRIES) {
+            console.log(`Beklenmeyen hata, ${RETRY_DELAY}ms sonra yeniden deneniyor...`);
+            setTimeout(() => {
+                window.loadGame(gameId, retryCount + 1);
+            }, RETRY_DELAY);
+        } else {
+            showGameNotification('❌ Bir hata oluştu: ' + error.message, 'error');
+            setTimeout(() => {
+                window.location.href = 'lobby.html';
+            }, 2000);
+        }
     }
-}
+};
 
 window.updateGameStatus = function() {
     const statusDiv = document.getElementById('gameStatus');

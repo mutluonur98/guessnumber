@@ -641,7 +641,39 @@ async function loadStats() {
         console.error('Load stats error:', error);
     }
 }
+// ============ OYUN İÇİ BİLDİRİM FONKSİYONU (lobi için) ============
+function showGameNotification(message, type = 'info') {
+    // Eski bildirimi kaldır
+    const oldNotif = document.querySelector('.game-notification');
+    if (oldNotif) oldNotif.remove();
 
+    const notification = document.createElement('div');
+    notification.className = `game-notification ${type}`;
+
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    else if (type === 'error') icon = '❌';
+    else if (type === 'warning') icon = '⚠️';
+
+    notification.innerHTML = `
+        <div class="game-notification-content">
+            <span class="game-notification-icon">${icon}</span>
+            <span class="game-notification-message">${message}</span>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // 3 saniye sonra kaybol
+    setTimeout(() => {
+        if (notification) {
+            notification.classList.add('fade-out');
+            setTimeout(() => {
+                if (notification && notification.remove) notification.remove();
+            }, 500);
+        }
+    }, 3000);
+}
 function setupLobbyRealtime() {
     const supabase = initSupabase();
 
@@ -701,6 +733,9 @@ window.confirmCreateGame = async function() {
     const supabase = initSupabase();
     const roomCode = generateRoomCode();
 
+    // Loading göster
+    showGameNotification('📡 Oda oluşturuluyor...', 'info');
+
     try {
         const { data: game, error } = await supabase
             .from('games')
@@ -719,21 +754,26 @@ window.confirmCreateGame = async function() {
 
         if (error) {
             console.error('Create game error:', error);
-            alert('Düello oluşturma hatası: ' + error.message);
+            showGameNotification('❌ Düello oluşturma hatası: ' + error.message, 'error');
             return;
         }
 
         if (game && game.length > 0) {
             closeCreateSecretModal();
-            window.location.href = `game.html?gameId=${game[0].id}&playerId=${currentPlayer.id}`;
+            showGameNotification('Oda oluşturuldu! Yönlendiriliyorsunuz...', 'success');
+
+            // Veritabanında oyunun tamamen oluşması için 500ms bekle
+            setTimeout(() => {
+                window.location.href = `game.html?gameId=${game[0].id}&playerId=${currentPlayer.id}`;
+            }, 500);
         } else {
-            alert('Düello oluşturulamadı!');
+            showGameNotification('❌ Düello oluşturulamadı!', 'error');
         }
     } catch (error) {
         console.error('Create game error:', error);
-        alert('Bir hata oluştu: ' + error.message);
+        showGameNotification('❌ Bir hata oluştu: ' + error.message, 'error');
     }
-}
+};
 
 window.prepareJoinWithCode = async function() {
     const roomCode = document.getElementById('joinCodeInput').value.trim();
