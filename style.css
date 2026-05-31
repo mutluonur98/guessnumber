@@ -3119,4 +3119,197 @@ input[type="text"]:focus, input[type="password"]:focus {
     color: #adb5bd;
     font-style: italic;
 }
+/* Oyun içi bildirim stilleri */
+.game-notification {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10001;
+    animation: slideUp 0.3s ease-out;
+}
+
+.game-notification-content {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    backdrop-filter: blur(10px);
+    padding: 12px 24px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.game-notification.success .game-notification-content {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+}
+
+.game-notification.error .game-notification-content {
+    background: linear-gradient(135deg, #eb3349, #f45c43);
+}
+
+.game-notification.warning .game-notification-content {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.game-notification-icon {
+    font-size: 18px;
+}
+
+.game-notification-message {
+    font-size: 13px;
+}
+
+.game-notification.fade-out {
+    animation: fadeOut 0.5s ease-out forwards;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-50px);
+    }
+}
+
+/* OYUN İÇİ ONAY BİLDİRİMİ (popupsız) */
+.game-confirmation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.game-confirmation.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.game-confirmation-content {
+    background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+    border-radius: 24px;
+    padding: 25px;
+    max-width: 350px;
+    width: 90%;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.game-confirmation.show .game-confirmation-content {
+    transform: scale(1);
+}
+
+.game-confirmation-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.game-confirmation-icon {
+    font-size: 32px;
+}
+
+.game-confirmation-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffd700;
+}
+
+.game-confirmation-message {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 25px;
+}
+
+.game-confirmation-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.confirm-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 40px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* EVET (Çıkış yap) - KIRMIZI */
+.confirm-yes {
+    background: linear-gradient(135deg, #eb3349, #f45c43);
+    color: white;
+}
+
+.confirm-yes:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 15px rgba(235, 51, 73, 0.4);
+}
+
+/* HAYIR (Vazgeç) - YEŞİL */
+.confirm-no {
+    background: linear-gradient(135deg, #11998e, #38ef7d);
+    color: white;
+}
+
+.confirm-no:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
+}
+
+@media (max-width: 480px) {
+    .game-confirmation-content {
+        padding: 20px;
+        max-width: 300px;
+    }
+
+    .confirm-btn {
+        padding: 10px 18px;
+        font-size: 13px;
+    }
+
+    .game-confirmation-title {
+        font-size: 18px;
+    }
+
+    .game-confirmation-message {
+        font-size: 13px;
+    }
+}
 

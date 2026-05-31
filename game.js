@@ -16,6 +16,106 @@ function initSupabase() {
     }
     return window.supabaseClient;
 }
+// ============ OYUN İÇİ BİLDİRİM FONKSİYONU ============
+function showGameNotification(message, type = 'info') {
+    // Eski bildirimi kaldır
+    const oldNotif = document.querySelector('.game-notification');
+    if (oldNotif) oldNotif.remove();
+
+    const notification = document.createElement('div');
+    notification.className = `game-notification ${type}`;
+
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    else if (type === 'error') icon = '❌';
+    else if (type === 'warning') icon = '⚠️';
+
+    notification.innerHTML = `
+        <div class="game-notification-content">
+            <span class="game-notification-icon">${icon}</span>
+            <span class="game-notification-message">${message}</span>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // 3 saniye sonra kaybol
+    setTimeout(() => {
+        if (notification) {
+            notification.classList.add('fade-out');
+            setTimeout(() => {
+                if (notification && notification.remove) notification.remove();
+            }, 500);
+        }
+    }, 3000);
+}
+// OYUN İÇİ ONAY BİLDİRİMİ (popupsız)
+let activeConfirmation = null;
+
+function showConfirmationNotification(title, message, onConfirm, onCancel) {
+    // Eski bildirimi kaldır
+    if (activeConfirmation) {
+        activeConfirmation.remove();
+    }
+
+    const confirmation = document.createElement('div');
+    confirmation.className = 'game-confirmation';
+    confirmation.innerHTML = `
+        <div class="game-confirmation-content">
+            <div class="game-confirmation-header">
+                <span class="game-confirmation-icon">⚠️</span>
+                <span class="game-confirmation-title">${title}</span>
+            </div>
+            <div class="game-confirmation-message">${message}</div>
+            <div class="game-confirmation-buttons">
+                <button class="confirm-btn confirm-yes">✅ Evet, Çık</button>
+                <button class="confirm-btn confirm-no">❌ Hayır, Vazgeç</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(confirmation);
+    activeConfirmation = confirmation;
+
+    // Animasyon
+    setTimeout(() => {
+        confirmation.classList.add('show');
+    }, 10);
+
+    // Buton olayları
+    const yesBtn = confirmation.querySelector('.confirm-yes');
+    const noBtn = confirmation.querySelector('.confirm-no');
+
+    yesBtn.onclick = () => {
+        confirmation.classList.remove('show');
+        setTimeout(() => {
+            confirmation.remove();
+            activeConfirmation = null;
+            if (onConfirm) onConfirm();
+        }, 300);
+    };
+
+    noBtn.onclick = () => {
+        confirmation.classList.remove('show');
+        setTimeout(() => {
+            confirmation.remove();
+            activeConfirmation = null;
+            if (onCancel) onCancel();
+        }, 300);
+    };
+
+    // 10 saniye sonra otomatik kapan
+    setTimeout(() => {
+        if (activeConfirmation === confirmation) {
+            confirmation.classList.remove('show');
+            setTimeout(() => {
+                confirmation.remove();
+                activeConfirmation = null;
+                if (onCancel) onCancel();
+            }, 300);
+        }
+    }, 10000);
+}
 
 function setupNumericInput(inputElement) {
     if (!inputElement) return;
@@ -585,12 +685,97 @@ async function checkGameUpdates(gameId) {
             return;
         }
 
-        if (game && window.currentGame) {
-            if (game.status !== window.currentGame.status ||
-                game.player2_id !== window.currentGame.player2_id ||
-                game.current_turn !== window.currentGame.current_turn ||
-                game.winner_id !== window.currentGame.winner_id ||
-                game.is_extra_turn !== window.currentGame.is_extra_turn) {
+        if (!game) return;
+
+        // ========== RAKİP TERK KONTROLÜ (SADECE RAKİP ÇIKINCA BİLDİRİM) ==========
+        // Oyun finished ise, kazanan ben isem VE rakip terk ettiyse (abandoned_by varsa)
+        if (game.status === 'finished' && game.winner_id === window.currentPlayer?.id && game.abandoned_by) {
+            if (!window._notifiedWin) {
+                window._notifiedWin = true;
+
+                console.log('🎉 RAKİP TERK ETTİ! Siz kazandınız!');
+
+                // OYUN İÇİ BİLDİRİM KARTI (popup değil!)
+                showGameNotification('🎉 RAKİP OYUNDAN ÇIKTI! HÜKMEN KAZANDINIZ! 🎉', 'success');
+
+                // Konfeti
+                if (typeof canvasConfetti !== 'undefined') {
+                    canvasConfetti({ particleCount: 300, spread: 100, origin: { y: 0.5 } });
+                } else if (typeof confetti === 'function') {
+                    confetti({ particleCount: 300, spread: 100, origin: { y: 0.5 } });
+                }
+
+                // Turn indicator
+                const turnIndicator = document.getElementById('turnIndicator');
+                if (turnIndicator) {
+                    turnIndicator.innerHTML = '🏆 <strong>RAKİP TERK ETTİ, SİZ KAZANDINIZ!</strong>';
+                    turnIndicator.className = 'turn-indicator finished';
+                    turnIndicator.style.background = 'linear-gradient(135deg, #4caf50, #2e7d32)';
+                }
+
+                // Kazanan animasyonu
+                const isPlayer1Winner = game.winner_id === game.player1_id;
+                const winnerBoxId = isPlayer1Winner ? 'player1Box' : 'player2Box';
+                const winnerBox = document.getElementById(winnerBoxId);
+                if (winnerBox) {
+                    winnerBox.classList.add('winner-animation');
+                }
+
+                // Inputları devre dışı bırak
+                const guessInput = document.getElementById('guessInput');
+                const guessButton = document.getElementById('guessButton');
+                if (guessInput) guessInput.disabled = true;
+                if (guessButton) guessButton.disabled = true;
+            }
+        }
+
+            // ========== NORMAL KAZANÇ (TAHMİN BULMA) - BİLDİRİM YOK, SADECE UI GÜNCELLEME ==========
+        // Oyun finished ise, kazanan ben isem VE rakip terk etmediyse (normal kazanç)
+        else if (game.status === 'finished' && game.winner_id === window.currentPlayer?.id && !game.abandoned_by) {
+            if (!window._notifiedWinNormal) {
+                window._notifiedWinNormal = true;
+
+                console.log('🎉 NORMAL KAZANÇ! Sayıyı buldunuz!');
+
+                // SADECE UI güncelleme, BİLDİRİM KARTI YOK!
+                const turnIndicator = document.getElementById('turnIndicator');
+                if (turnIndicator) {
+                    turnIndicator.innerHTML = '🏆 <strong>TEBRİKLER! KAZANDINIZ! 🎉</strong>';
+                    turnIndicator.className = 'turn-indicator finished';
+                    turnIndicator.style.background = 'linear-gradient(135deg, #4caf50, #2e7d32)';
+                }
+
+                // Konfeti sadece normal kazançta patlasın (istersen)
+                if (typeof canvasConfetti !== 'undefined') {
+                    canvasConfetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });
+                } else if (typeof confetti === 'function') {
+                    confetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });
+                }
+
+                // Kazanan animasyonu
+                const isPlayer1Winner = game.winner_id === game.player1_id;
+                const winnerBoxId = isPlayer1Winner ? 'player1Box' : 'player2Box';
+                const winnerBox = document.getElementById(winnerBoxId);
+                if (winnerBox) {
+                    winnerBox.classList.add('winner-animation');
+                }
+
+                // Inputları devre dışı bırak
+                const guessInput = document.getElementById('guessInput');
+                const guessButton = document.getElementById('guessButton');
+                if (guessInput) guessInput.disabled = true;
+                if (guessButton) guessButton.disabled = true;
+            }
+        }
+
+        // Normal güncellemeler
+        if (window.currentGame) {
+            let needsUpdate = false;
+            if (game.status !== window.currentGame.status) needsUpdate = true;
+            if (game.current_turn !== window.currentGame.current_turn) needsUpdate = true;
+            if (game.winner_id !== window.currentGame.winner_id) needsUpdate = true;
+
+            if (needsUpdate) {
                 window.currentGame = game;
                 updateGameStatus();
                 updatePlayerNames();
@@ -600,7 +785,17 @@ async function checkGameUpdates(gameId) {
                 loadGuesses(gameId);
                 loadOpponentStats();
             }
+        } else {
+            window.currentGame = game;
+            updateGameStatus();
+            updatePlayerNames();
+            updateSecretDisplay();
+            updatePlayerStatus();
+            updateInputMaxLength(game.digit_count || 6);
+            loadGuesses(gameId);
+            loadOpponentStats();
         }
+
     } catch (error) {
         console.error('Check update error:', error);
     }
@@ -616,32 +811,76 @@ function setupGameRealtime(gameId) {
         supabase.removeChannel(window.guessesChannel);
     }
 
+    console.log('🔄 Realtime dinleme başlatılıyor... Game ID:', gameId);
+    console.log('👤 Current Player ID:', window.currentPlayer?.id);
+
+    // setupGameRealtime içindeki payload kontrolünü şu şekilde değiştirin:
+    // setupGameRealtime içindeki payload kontrolünü şu şekilde değiştirin:
+    // setupGameRealtime içindeki payload kontrolü
     window.gameChannel = supabase
         .channel(`game-updates-${gameId}`)
         .on('postgres_changes', {
-            event: '*',
+            event: 'UPDATE',
             schema: 'public',
             table: 'games',
             filter: `id=eq.${gameId}`
         }, (payload) => {
-            if (payload.new) {
-                const oldStatus = window.currentGame?.status;
-                window.currentGame = payload.new;
+            console.log('📡 REALTIME güncelleme geldi!', payload.new);
+
+            const newGame = payload.new;
+
+            if (newGame && window.currentPlayer) {
+                // SADECE RAKİP TERK ETTİYSE BİLDİRİM GÖSTER
+                if (newGame.status === 'finished' && newGame.winner_id === window.currentPlayer?.id && newGame.abandoned_by) {
+                    if (!window._notifiedWin) {
+                        window._notifiedWin = true;
+                        console.log('🎉 REALTIME: RAKİP TERK ETTİ!');
+
+                        // OYUN İÇİ BİLDİRİM KARTI
+                        showGameNotification('🎉 RAKİP OYUNDAN ÇIKTI! HÜKMEN KAZANDINIZ! 🎉', 'success');
+
+                        if (typeof canvasConfetti !== 'undefined') {
+                            canvasConfetti({ particleCount: 300, spread: 100 });
+                        }
+
+                        const turnIndicator = document.getElementById('turnIndicator');
+                        if (turnIndicator) {
+                            turnIndicator.innerHTML = '🏆 <strong>RAKİP TERK ETTİ, SİZ KAZANDINIZ!</strong>';
+                            turnIndicator.className = 'turn-indicator finished';
+                            turnIndicator.style.background = 'linear-gradient(135deg, #4caf50, #2e7d32)';
+                        }
+                    }
+                }
+
+                // NORMAL KAZANÇ (tahmin bulma) - BİLDİRİM YOK
+                else if (newGame.status === 'finished' && newGame.winner_id === window.currentPlayer?.id && !newGame.abandoned_by) {
+                    if (!window._notifiedWinNormal) {
+                        window._notifiedWinNormal = true;
+                        console.log('🎉 NORMAL KAZANÇ!');
+
+                        // SADECE UI güncelleme
+                        const turnIndicator = document.getElementById('turnIndicator');
+                        if (turnIndicator) {
+                            turnIndicator.innerHTML = '🏆 <strong>TEBRİKLER! KAZANDINIZ! 🎉</strong>';
+                            turnIndicator.className = 'turn-indicator finished';
+                            turnIndicator.style.background = 'linear-gradient(135deg, #4caf50, #2e7d32)';
+                        }
+
+                        if (typeof canvasConfetti !== 'undefined') {
+                            canvasConfetti({ particleCount: 200, spread: 70 });
+                        }
+                    }
+                }
+
+                // Normal güncelleme
+                window.currentGame = newGame;
                 updateGameStatus();
                 updatePlayerNames();
                 updateSecretDisplay();
                 updatePlayerStatus();
-                updateInputMaxLength(payload.new.digit_count || 6);
+                updateInputMaxLength(newGame.digit_count || 6);
                 loadGuesses(gameId);
                 loadOpponentStats();
-
-                if (oldStatus === 'waiting' && payload.new.status === 'active') {
-                    const turnIndicator = document.getElementById('turnIndicator');
-                    if (turnIndicator) {
-                        turnIndicator.innerHTML = '🎮 <strong>RAKİP KATILDI! OYUN BAŞLIYOR!</strong>';
-                        setTimeout(() => updateGameStatus(), 2000);
-                    }
-                }
             }
         })
         .subscribe();
@@ -654,10 +893,35 @@ function setupGameRealtime(gameId) {
             table: 'guesses',
             filter: `game_id=eq.${gameId}`
         }, () => {
+            console.log('📝 Yeni tahmin eklendi');
             loadGuesses(gameId);
-            checkGameUpdates(gameId);
         })
         .subscribe();
+
+    console.log('✅ Realtime dinleme başlatıldı');
+}
+
+// Yardımcı bildirim fonksiyonu (eğer yoksa)
+function showCustomNotification(message, type) {
+    const oldNotification = document.querySelector('.custom-notification');
+    if (oldNotification) {
+        oldNotification.remove();
+    }
+
+    const notification = document.createElement('div');
+    notification.className = `custom-notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">${type === 'success' ? '🎉' : '❌'}</span>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.classList.add('hide');
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
 }
 
 async function updatePlayerNames() {
@@ -1245,14 +1509,150 @@ window.getNextGuessNumber = async function(gameId, playerId) {
     return (guesses?.length || 0) + 1;
 }
 
-window.leaveGame = function() {
+window.leaveGame = async function() {
     const supabase = initSupabase();
-    if (window.gameCheckInterval) clearInterval(window.gameCheckInterval);
-    if (window.gameChannel) supabase.removeChannel(window.gameChannel);
-    if (window.guessesChannel) supabase.removeChannel(window.guessesChannel);
-    if (window.messageChannel) supabase.removeChannel(window.messageChannel);
+
+    if (!window.currentGame || !window.currentPlayer) {
+        window.location.href = 'lobby.html';
+        return;
+    }
+
+    console.log('🚪 leaveGame çağrıldı. Oyun durumu:', window.currentGame.status);
+
+    // Eğer oyun BEKLEMEDE (waiting) ise ve bu odayı KURAN KİŞİ ise -> Odayı sil
+    if (window.currentGame.status === 'waiting' && window.currentGame.player1_id === window.currentPlayer.id) {
+        // OYUN İÇİ ONAY BİLDİRİMİ GÖSTER
+        showConfirmationNotification(
+            ' Oda Kapatılıyor',
+            'Bu odayı terk ederseniz, oda tamamen silinecektir.',
+            async () => {
+                showGameNotification('⏳ Oda kapatılıyor...', 'info');
+
+                try {
+                    const { error } = await supabase
+                        .from('games')
+                        .delete()
+                        .eq('id', window.currentGame.id);
+
+                    if (error) {
+                        console.error('Oda silme hatası:', error);
+                        showGameNotification('❌ Oda silinirken hata oluştu!', 'error');
+                        return;
+                    }
+
+                    console.log('Oda başarıyla silindi');
+                    showGameNotification('Oda başarıyla kapatıldı!', 'success');
+
+                    setTimeout(() => {
+                        window.location.href = 'lobby.html';
+                    }, 1000);
+
+                } catch (error) {
+                    console.error('Oda silme hatası:', error);
+                    showGameNotification('❌ Bir hata oluştu!', 'error');
+                }
+            },
+            () => {
+                showGameNotification('❌ Oda kapatma iptal edildi', 'info');
+            }
+        );
+        return;
+    }
+
+    // Eğer oyun AKTİF (active) ise -> Rakibe hükmen galibiyet ver
+    else if (window.currentGame.status === 'active') {
+        const isPlayer1 = window.currentGame.player1_id === window.currentPlayer.id;
+        const opponentId = isPlayer1 ? window.currentGame.player2_id : window.currentGame.player1_id;
+
+        console.log('🔍 Aktif oyun terk ediliyor. Opponent ID:', opponentId);
+
+        if (opponentId) {
+            // OYUN İÇİ ONAY BİLDİRİMİ GÖSTER
+            showConfirmationNotification(
+                'Oyundan Çıkış',
+                'Oyundan çıkarsanız, RAKİP HÜKMEN KAZANIR ve ELO puanınız düşer!',
+                async () => {
+                    showGameNotification('Oyundan çıkıyorsunuz, rakip hükmen kazanacak...', 'warning');
+
+                    try {
+                        // Oyunu bitir ve rakibi kazanan yap
+                        const { data, error: updateError } = await supabase
+                            .from('games')
+                            .update({
+                                status: 'finished',
+                                winner_id: opponentId
+                            })
+                            .eq('id', window.currentGame.id)
+                            .select();
+
+                        if (updateError) {
+                            console.error('❌ Oyun güncelleme hatası:', updateError);
+                            showGameNotification('❌ Oyun güncellenirken hata oluştu!', 'error');
+                            return;
+                        }
+
+                        console.log('Oyun başarıyla güncellendi:', data);
+                        showGameNotification('Oyundan çıktınız! Rakip hükmen kazandı.', 'warning');
+
+                        // İstatistikleri güncelle
+                        const { data: opponent, error: oppError } = await supabase
+                            .from('users')
+                            .select('wins, losses, draws, total_games, elo_rating')
+                            .eq('id', opponentId)
+                            .single();
+
+                        const { data: leaver, error: leaveError } = await supabase
+                            .from('users')
+                            .select('wins, losses, draws, total_games, elo_rating')
+                            .eq('id', window.currentPlayer.id)
+                            .single();
+
+                        if (!oppError && !leaveError) {
+                            await supabase
+                                .from('users')
+                                .update({
+                                    wins: (opponent.wins || 0) + 1,
+                                    total_games: (opponent.total_games || 0) + 1,
+                                    elo_rating: (opponent.elo_rating || 1000) + 4
+                                })
+                                .eq('id', opponentId);
+
+                            await supabase
+                                .from('users')
+                                .update({
+                                    losses: (leaver.losses || 0) + 1,
+                                    total_games: (leaver.total_games || 0) + 1,
+                                    elo_rating: Math.max(100, (leaver.elo_rating || 1000) - 4)
+                                })
+                                .eq('id', window.currentPlayer.id);
+                        }
+
+                        setTimeout(() => {
+                            window.location.href = 'lobby.html';
+                        }, 1500);
+                        return;
+
+                    } catch (error) {
+                        console.error('❌ Oyundan çıkış hatası:', error);
+                        showGameNotification('❌ Bir hata oluştu: ' + error.message, 'error');
+                        return;
+                    }
+                },
+                () => {
+                    showGameNotification('Oyundan çıkış iptal edildi', 'success');
+                }
+            );
+            return;
+        } else {
+            console.error('❌ Opponent ID bulunamadı!');
+            showGameNotification('❌ Rakip bilgisi bulunamadı!', 'error');
+            return;
+        }
+    }
+
+    // Normal çıkış
     window.location.href = 'lobby.html';
-}
+};
 
 window.showError = function(message) {
     const errorDiv = document.getElementById('errorMessage');

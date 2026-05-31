@@ -36,12 +36,113 @@ function checkAuth() {
     return JSON.parse(userStr);
 }
 
-window.logout = function() {
+// ============ YENİ: KULLANICININ BEKLEYEN ODALARINI TEMİZLE ============
+async function cleanupUserWaitingGames(userId) {
+    const supabase = initSupabase();
+
+    try {
+        // Kullanıcının kurduğu ve beklemede olan odaları bul
+        const { data: waitingGames, error } = await supabase
+            .from('games')
+            .select('id')
+            .eq('player1_id', userId)
+            .eq('status', 'waiting');
+
+        if (!error && waitingGames && waitingGames.length > 0) {
+            for (const game of waitingGames) {
+                await supabase.from('games').delete().eq('id', game.id);
+                console.log('🗑️ Bekleyen oda silindi:', game.id);
+            }
+            if (waitingGames.length > 0) {
+                console.log(`✅ ${waitingGames.length} adet beklemedeki oda temizlendi`);
+            }
+        }
+    } catch (error) {
+        console.error('Bekleyen odalar temizlenirken hata:', error);
+    }
+}
+
+// ============ YENİ: AKTİF OYUNLARI TERK ET (RAKİBE GALİBİYET) ============
+async function abandonActiveGames(userId) {
+    const supabase = initSupabase();
+
+    try {
+        // Kullanıcının dahil olduğu aktif oyunları bul
+        const { data: activeGames, error } = await supabase
+            .from('games')
+            .select('*')
+            .or(`player1_id.eq.${userId},player2_id.eq.${userId}`)
+            .eq('status', 'active');
+
+        if (!error && activeGames && activeGames.length > 0) {
+            for (const game of activeGames) {
+                const opponentId = game.player1_id === userId ? game.player2_id : game.player1_id;
+
+                if (opponentId) {
+                    console.log(`🏆 Oyuncu ${userId} oyunu terk etti, rakip ${opponentId} kazandı`);
+
+                    // Rakibin galibiyetini ve kaybedenin mağlubiyetini güncelle
+                    await supabase
+                        .from('users')
+                        .update({
+                            wins: supabase.raw('wins + 1'),
+                            total_games: supabase.raw('total_games + 1')
+                        })
+                        .eq('id', opponentId);
+
+                    await supabase
+                        .from('users')
+                        .update({
+                            losses: supabase.raw('losses + 1'),
+                            total_games: supabase.raw('total_games + 1')
+                        })
+                        .eq('id', userId);
+
+                    // ELO güncellemesi yap (rakip kazandı)
+                    await updateEloRatings(opponentId, userId, false);
+
+                    // Oyunu bitir
+                    await supabase
+                        .from('games')
+                        .update({
+                            status: 'finished',
+                            winner_id: opponentId,
+                            ended_at: new Date(),
+                            abandoned_by: userId
+                        })
+                        .eq('id', game.id);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Aktif oyunlar terk edilirken hata:', error);
+    }
+}
+
+// GÜNCELLENMİŞ logout fonksiyonu
+window.logout = async function() {
+    if (!currentPlayer) {
+        sessionStorage.removeItem('currentUser');
+        window.location.href = 'index.html';
+        return;
+    }
+
+    // 1. Kullanıcının beklemedeki odalarını temizle
+    await cleanupUserWaitingGames(currentPlayer.id);
+
+    // 2. Kullanıcının aktif oyunlarını terk et (rakibe galibiyet)
+    await abandonActiveGames(currentPlayer.id);
+
+    // 3. Oturumu temizle
     sessionStorage.removeItem('currentUser');
+
+    // 4. Realtime kanalını kapat
     if (lobbyChannel) {
         const supabase = initSupabase();
         supabase.removeChannel(lobbyChannel);
     }
+
+    // 5. Ana sayfaya yönlendir
     window.location.href = 'index.html';
 }
 
@@ -162,20 +263,18 @@ async function loadUserAvatar() {
     }
 }
 
-// ELO HESAPLAMA FONKSİYONLARI (Minimum 4 puan garantili)
+// ELO HESAPLAMA FONKSİYONLARI
 function calculateEloChange(winnerElo, loserElo, isDraw = false) {
-    const K = 32; // K-faktörü (normal oyunlar için)
-    const MIN_POINTS = 4; // Minimum puan değişimi
+    const K = 32;
+    const MIN_POINTS = 4;
 
     if (isDraw) {
-        // Beraberlik durumunda beklenen skor 0.5
         const expectedWinner = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
         const expectedLoser = 1 / (1 + Math.pow(10, (winnerElo - loserElo) / 400));
 
         let winnerChange = Math.round(K * (0.5 - expectedWinner));
         let loserChange = Math.round(K * (0.5 - expectedLoser));
 
-        // Minimum puan garantisi (mutlak değer olarak)
         if (Math.abs(winnerChange) < MIN_POINTS && winnerChange !== 0) {
             winnerChange = winnerChange > 0 ? MIN_POINTS : -MIN_POINTS;
         }
@@ -185,21 +284,18 @@ function calculateEloChange(winnerElo, loserElo, isDraw = false) {
 
         return { winnerChange, loserChange };
     } else {
-        // Kazanan için 1, kaybeden için 0
         const expectedWinner = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
         const expectedLoser = 1 / (1 + Math.pow(10, (winnerElo - loserElo) / 400));
 
         let winnerChange = Math.round(K * (1 - expectedWinner));
         let loserChange = Math.round(K * (0 - expectedLoser));
 
-        // Minimum puan garantisi - Kazanan en az 4 puan kazansın
         if (winnerChange < MIN_POINTS && winnerChange > 0) {
             const difference = MIN_POINTS - winnerChange;
             winnerChange = MIN_POINTS;
-            loserChange = loserChange - difference; // Kaybeden daha fazla kaybetsin
+            loserChange = loserChange - difference;
         }
 
-        // Kaybeden maximum -32 puan kaybedebilir (minimum -32)
         if (loserChange < -32) {
             const difference = loserChange + 32;
             loserChange = -32;
@@ -214,7 +310,6 @@ async function updateEloRatings(winnerId, loserId, isDraw = false) {
     const supabase = initSupabase();
 
     try {
-        // Kazanan ve kaybedenin mevcut Elo puanlarını al
         const { data: winner, error: winnerError } = await supabase
             .from('users')
             .select('elo_rating')
@@ -232,13 +327,11 @@ async function updateEloRatings(winnerId, loserId, isDraw = false) {
         const winnerElo = winner.elo_rating || 1000;
         const loserElo = loser.elo_rating || 1000;
 
-        // Elo değişimini hesapla
         const { winnerChange, loserChange } = calculateEloChange(winnerElo, loserElo, isDraw);
 
-        const newWinnerElo = Math.max(100, winnerElo + winnerChange); // Minimum 100 puan
+        const newWinnerElo = Math.max(100, winnerElo + winnerChange);
         const newLoserElo = Math.max(100, loserElo + loserChange);
 
-        // Güncellemeleri yap
         if (isDraw) {
             await supabase
                 .from('users')
@@ -269,7 +362,6 @@ async function updateEloRatings(winnerId, loserId, isDraw = false) {
     }
 }
 
-// Elo seviyesini belirleyen fonksiyon
 function getEloLevel(elo) {
     if (elo < 1000) return { name: "Çaylak", color: "beginner" };
     if (elo < 1200) return { name: "Bronz", color: "bronze" };
@@ -291,7 +383,6 @@ window.loadLeaderboard = async function(period = 'all') {
     tableBody.innerHTML = '<div class="loading-spinner">🏆 Sıralama yükleniyor...</div>';
 
     try {
-        // Elo puanına göre sırala
         const { data: leaders, error } = await supabase
             .from('users')
             .select('id, username, avatar, wins, losses, draws, total_games, elo_rating')
@@ -349,7 +440,7 @@ window.loadLeaderboard = async function(period = 'all') {
             `;
         });
 
-        html += `</tbody> licensierad`;
+        html += `</tbody></table>`;
         tableBody.innerHTML = html;
 
         await loadMyRank();
@@ -418,12 +509,13 @@ async function loadMyRank() {
     }
 }
 
-// loadRooms - Özel düelloları gizler
+// ============ GÜNCELLENMİŞ loadRooms - Ölü odaları gösterme ============
 async function loadRooms() {
     const supabase = initSupabase();
     if (!currentPlayer) return;
 
     try {
+        // Tüm waiting odalarını al
         const { data: rooms, error } = await supabase
             .from('games')
             .select('*')
@@ -437,37 +529,63 @@ async function loadRooms() {
         }
 
         const roomsList = document.getElementById('roomsList');
-        if (!rooms || rooms.length === 0) {
+
+        // Geçerli odaları filtrele
+        const validRooms = [];
+
+        for (const room of rooms || []) {
+            try {
+                // Player1'in hala var olup olmadığını kontrol et
+                const { data: player, error: playerError } = await supabase
+                    .from('users')
+                    .select('id, username, avatar, elo_rating')
+                    .eq('id', room.player1_id)
+                    .maybeSingle();
+
+                // Eğer player1 silinmiş veya yoksa, bu odayı temizle
+                if (playerError || !player) {
+                    console.log('🗑️ Geçersiz oyuncu (silinmiş), oda siliniyor:', room.id);
+                    await supabase.from('games').delete().eq('id', room.id);
+                    continue;
+                }
+
+                // Geçerli odaya ekle
+                validRooms.push({
+                    ...room,
+                    player_username: player.username,
+                    player_avatar: player.avatar || '👤',
+                    player_elo: player.elo_rating || 1000
+                });
+
+            } catch (err) {
+                console.error('Room validation error:', err);
+            }
+        }
+
+        if (validRooms.length === 0) {
             roomsList.innerHTML = '<p>📭 Bekleyen düello yok. Hemen düello kurun!</p>';
             return;
         }
 
         roomsList.innerHTML = '';
-        for (const room of rooms) {
-            try {
-                const { data: player } = await supabase
-                    .from('users')
-                    .select('username, avatar, elo_rating')
-                    .eq('id', room.player1_id)
-                    .maybeSingle();
-
-                const playerAvatar = player?.avatar || '👤';
-                const playerName = player?.username || 'Anonim';
-                const playerElo = player?.elo_rating || 1000;
-
-                const roomDiv = document.createElement('div');
-                roomDiv.className = 'room-item';
-                roomDiv.innerHTML = `
-                    <div class="room-info">
-                        <span class="room-avatar">${playerAvatar}</span>
-                        <span>🏠 Oda Kodu: <strong style="color:#667eea">${room.room_code}</strong> | ${playerName} (⭐${playerElo}) | ${room.digit_count} Basamak</span>
+        for (const room of validRooms) {
+            const roomDiv = document.createElement('div');
+            roomDiv.className = 'room-item';
+            roomDiv.innerHTML = `
+                <div class="room-info">
+                    <div class="room-avatar" style="background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        ${room.player_avatar}
                     </div>
-                    <button onclick="joinGame('${room.id}')">Katıl</button>
-                `;
-                roomsList.appendChild(roomDiv);
-            } catch (err) {
-                console.error('Room list error:', err);
-            }
+                    <div>
+                        <div><strong style="color:#fff">${room.player_username}</strong> <span style="font-size:12px; color:#ffd700">⭐${room.player_elo}</span></div>
+                        <div style="font-size:11px; color:#aaa">🔢 ${room.digit_count} Basamak | 🏠 ${room.room_code}</div>
+                    </div>
+                </div>
+                <button onclick="joinGame('${room.id}')" class="join-btn" style="background: linear-gradient(135deg, #11998e, #38ef7d); border-radius: 30px; padding: 8px 20px; border: none; color: white; cursor: pointer;">
+                    🎯 Katıl
+                </button>
+            `;
+            roomsList.appendChild(roomDiv);
         }
     } catch (error) {
         console.error('Load rooms error:', error);
@@ -504,7 +622,6 @@ async function loadStats() {
             document.getElementById('winrateValue').textContent = `${winrate}%`;
             document.getElementById('winrateFill').style.width = `${winrate}%`;
 
-            // ELO güncelleme - RENKLİ
             const eloRating = stats.elo_rating || 1000;
             const level = getEloLevel(eloRating);
 
@@ -513,12 +630,10 @@ async function loadStats() {
 
             if (eloValueElement) {
                 eloValueElement.textContent = eloRating;
-                // RENK SINIFINI EKLE - ÖNCEKİ SINIFLARI TEMİZLE
                 eloValueElement.className = 'stat-value ' + level.color;
             }
             if (eloLabelElement) {
                 eloLabelElement.textContent = level.name;
-                // RENK SINIFINI EKLE
                 eloLabelElement.className = 'stat-label ' + level.color;
             }
         }
@@ -648,6 +763,20 @@ window.prepareJoinWithCode = async function() {
             return;
         }
 
+        // Ek kontrol: Odayı kuran oyuncu hala var mı?
+        const { data: player, error: playerError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', game.player1_id)
+            .maybeSingle();
+
+        if (playerError || !player) {
+            alert('❌ Bu düelloyu kuran oyuncu artık mevcut değil! Oda siliniyor.');
+            await supabase.from('games').delete().eq('id', game.id);
+            await loadRooms();
+            return;
+        }
+
         if (game.player1_id === currentPlayer.id) {
             alert('❌ Kendi düellonuza katılamazsınız!');
             return;
@@ -689,6 +818,20 @@ window.joinGame = async function(gameId) {
 
         if (error || !game) {
             alert('Düello bulunamadı!');
+            return;
+        }
+
+        // Ek kontrol: Odayı kuran oyuncu hala var mı?
+        const { data: player, error: playerError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', game.player1_id)
+            .maybeSingle();
+
+        if (playerError || !player) {
+            alert('❌ Bu düelloyu kuran oyuncu artık mevcut değil! Oda siliniyor.');
+            await supabase.from('games').delete().eq('id', game.id);
+            await loadRooms();
             return;
         }
 
@@ -772,9 +915,54 @@ window.confirmJoinWithSecret = async function() {
     }
 }
 
-// ELO fonksiyonlarını global yap (game.js'de kullanmak için)
+// ============ PERİYODİK ÖLÜ ODA TEMİZLİĞİ ============
+async function cleanupDeadRooms() {
+    const supabase = initSupabase();
+    if (!currentPlayer) return;
+
+    try {
+        // Tüm waiting odaları al
+        const { data: waitingRooms, error } = await supabase
+            .from('games')
+            .select('*')
+            .eq('status', 'waiting');
+
+        if (error || !waitingRooms) return;
+
+        for (const room of waitingRooms) {
+            // Player1'in var olup olmadığını kontrol et
+            const { data: player, error: playerError } = await supabase
+                .from('users')
+                .select('id')
+                .eq('id', room.player1_id)
+                .maybeSingle();
+
+            // Eğer player1 yoksa veya 10 dakikadan eskiyse sil
+            const createdDate = new Date(room.created_at);
+            const now = new Date();
+            const minutesOld = (now - createdDate) / 1000 / 60;
+
+            if (playerError || !player || minutesOld > 10) {
+                console.log('🗑️ Ölü oda temizlendi:', room.id);
+                await supabase.from('games').delete().eq('id', room.id);
+            }
+        }
+    } catch (error) {
+        console.error('Cleanup error:', error);
+    }
+}
+
+// ELO fonksiyonlarını global yap
 window.updateEloRatings = updateEloRatings;
 window.getEloLevel = getEloLevel;
+
+// Sayfa kapatılırken temizlik yap (sayfa yenileme veya kapatma)
+window.addEventListener('beforeunload', async () => {
+    if (currentPlayer) {
+        await cleanupUserWaitingGames(currentPlayer.id);
+        await abandonActiveGames(currentPlayer.id);
+    }
+});
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = checkAuth();
@@ -790,6 +978,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadStats();
     await loadLeaderboard('all');
     setupLobbyRealtime();
+
+    // Periyodik temizlik (her 30 saniyede bir)
+    setInterval(() => {
+        if (currentPlayer) {
+            cleanupDeadRooms();
+        }
+    }, 30000);
 
     if (typeof initFriendsSystem === 'function') {
         await initFriendsSystem(currentPlayer.id);
