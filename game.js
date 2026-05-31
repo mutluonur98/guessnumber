@@ -989,8 +989,8 @@ async function updatePlayerNames() {
 
 window.loadGame = async function(gameId, retryCount = 0) {
     const supabase = initSupabase();
-    const MAX_RETRIES = 5;
-    const RETRY_DELAY = 800;
+    const MAX_RETRIES = 10;
+    const RETRY_DELAY = 1000;
 
     try {
         console.log(`Oyun yükleniyor (deneme ${retryCount + 1}/${MAX_RETRIES}):`, gameId);

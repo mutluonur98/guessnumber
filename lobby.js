@@ -726,14 +726,13 @@ window.confirmCreateGame = async function() {
     const digits = selectedDigits || 6;
 
     if (!secret || secret.length !== digits || isNaN(secret)) {
-        alert(`Lütfen geçerli ${digits} haneli bir sayı girin!`);
+        showGameNotification(`Lütfen geçerli ${digits} haneli bir sayı girin!`, 'error');
         return;
     }
 
     const supabase = initSupabase();
     const roomCode = generateRoomCode();
 
-    // Loading göster
     showGameNotification('📡 Oda oluşturuluyor...', 'info');
 
     try {
@@ -760,12 +759,28 @@ window.confirmCreateGame = async function() {
 
         if (game && game.length > 0) {
             closeCreateSecretModal();
+
+            // Oyunun veritabanında tamamen hazır olduğundan emin ol
+            const gameId = game[0].id;
+
+            // Oyunu doğrula ve emin ol
+            const { data: verifyGame, error: verifyError } = await supabase
+                .from('games')
+                .select('id')
+                .eq('id', gameId)
+                .maybeSingle();
+
+            if (verifyError || !verifyGame) {
+                console.log('Oyun doğrulanamadı, biraz bekleniyor...');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
             showGameNotification('Oda oluşturuldu! Yönlendiriliyorsunuz...', 'success');
 
-            // Veritabanında oyunun tamamen oluşması için 500ms bekle
+            // 1 saniye bekle (daha güvenli)
             setTimeout(() => {
-                window.location.href = `game.html?gameId=${game[0].id}&playerId=${currentPlayer.id}`;
-            }, 500);
+                window.location.href = `game.html?gameId=${gameId}&playerId=${currentPlayer.id}`;
+            }, 1500);
         } else {
             showGameNotification('❌ Düello oluşturulamadı!', 'error');
         }
